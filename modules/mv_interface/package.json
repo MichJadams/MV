@@ -1,0 +1,14 @@
+{
+  "name": "mv_interface",
+  "version": "1.0.0",
+  "description": "",
+  "main": "MVDB.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "neo4j-driver": "^1.4.0"
+  }
+}

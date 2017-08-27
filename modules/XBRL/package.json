@@ -1,0 +1,16 @@
+{
+  "name": "xbrl",
+  "version": "1.0.0",
+  "description": "Parse XBRL documents",
+  "main": "xbrl.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "author": "Chrys Adams",
+  "license": "ISC",
+  "dependencies": {
+    "adm-zip": "^0.4.7",
+    "moment": "^2.18.1",
+    "xml2js-parser": "^1.1.1"
+  }
+}
