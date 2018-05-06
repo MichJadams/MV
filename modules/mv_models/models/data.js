@@ -1,9 +1,9 @@
 class Data{
-	constructor(MVDB){
-		this.MVDB = MVDB;
+	constructor(session){
+		this.session = session;
 	}
 
-	async get(path){
+	get(path, cb){
 		var query_params = {};
 		var query = 'MATCH (:DataRoot)';
 		for (var i = 0; i < path.length; i++) {
@@ -22,16 +22,22 @@ class Data{
 		}
 		query += ' RETURN n';
 		
-		var data = await this.MVDB.query(query, query_params);
-		data = data[0];
-		if (!data) {
-			return null;
-		}
-		data = data.toObject().n;
-		return data;
+		var d;
+		var stmt = this.session.run(query, query_params);
+		stmt.subscribe({
+			onError: function(err){
+				cb(err, null)
+			},
+			onNext: function(data){
+				d = data.toObject().n;	
+			},
+			onCompleted: function(summary){
+				cb(null, d);
+			}
+		});
 	}
 
-	async getChildren(path){
+	getChildren(path, cb){
 		var query_params = {};
 		var query = 'MATCH (:DataRoot)';
 		for (var i = 0; i < path.length; i++) {
@@ -45,16 +51,21 @@ class Data{
 			}
 		}
 		query += '-[:DATASET]->(n) return n';
-		console.log(query_params);
-		console.log(query);
-		var data = await this.MVDB.query(query, query_params);
-		for (var i = 0; i < data.length; i++) {
-			data[i] = data[i].toObject().n;
-		}
-		return data;
+		
+		var children = [];
+		var stmt = this.session.run(query, query_params);
+		stmt.subscribe({
+			onError: function(err){cb(err, null)},
+			onNext: function(child){
+				children.push(child.toObject().n);
+			},
+			onCompleted: function(){
+				cb(null, children);
+			}
+		});
 	}
 
-	async upsertPath(path, data){
+	upsertPath(path, data, cb){
 		console.log(path);
 		var params = {data : data}
 		var query = 'MATCH (root:DataRoot)';
@@ -69,14 +80,22 @@ class Data{
 			}
 			last_key = key;
 		}
-		query += ' SET node+=$data RETURN node';
+		query += ' SET node+=$data RETURN n';
 
-		console.trace();
-		console.log(params);
-		console.log(query);
 
-		var result = await this.MVDB.query(query, params);
-		return result[0].toObject().node;
+		var d;
+		var stmt = this.session.run(query, query_params);
+		stmt.subscribe({
+			onError: function(err){
+				cb(err, null)
+			},
+			onNext: function(data){
+				d = data.toObject().n;	
+			},
+			onCompleted: function(summary){
+				cb(null, d);
+			}
+		});
 	}
 }
 

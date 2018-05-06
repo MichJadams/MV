@@ -1,23 +1,26 @@
-const Account = require('models/account');
-const View = require('models/view');
-const Data = require('models/data');
-const MVAuth = require('MVAuth');
-
 module.exports = function(req, res, next){
 	var app = res.app;
 
-	app.use(MVAuth());
 
-	app.param('username', async function(req, res, next, username){
-		req.MV.Account = await Account(res.DB, username);
-		if (!req.MV.Account) {
-			return res.error('Error loading Account');
-		}
-		req.MV.View = await View(res.DB, username);
-		if (!req.MV.View) {
-			return res.error('Error loading View');
-		}
-		next();
+
+	app.post('/account/', require('./account').create);
+	app.get('/account/login', require('./account').login);
+
+	
+
+	app.param('username', function(req, res, next, username){
+		res.Models.Account.get(username, function(err, user){
+			if (err) {
+				res.error(err);
+			} else {
+				if (!user) {
+					res.error('No such user', 404);
+				} else {
+					req.MV.account = user;
+					next();	
+				}
+			}
+		});
 	});
 	app.use('/account/:username/', require('./account'));
 	

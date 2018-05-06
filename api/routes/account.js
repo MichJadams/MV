@@ -1,42 +1,51 @@
 var router = module.exports = require('express').Router(); 
-const Crypto = require('crypto');
 const Utils = require('Utils');
 
-router.post('/', async function(req, res){
-	if (req.data.username == null || req.body.password == null){
+module.exports.create = function create(req, res){
+	if (req.body.username == null || req.body.password == null){
 		return res.error('Missing Username or Password');
-	}
-	
-	if (req.MV.Account.valid) {
-		res.error('Username already taken');
+	}else if (req.body.username.match(/^[A-Za-z0-9]+$/) == null){
+		return res.error('Invalid username. Username must be alphanumeric');
 	}else{
-		var account = await req.MV.Account.create(req.body.password);
-		res.json({username: account.username});
+		res.Models.Account.create(req.body.username, req.body.password, function(err, account){
+			if (err) {
+				if (err.code == 'Neo.ClientError.Schema.ConstraintValidationFailed') {
+					res.error('Account exists');
+				} else {
+					res.error('Could not create account');
+				}
+			} else {
+				var auth_token = req.auth.encodeToken({username: account.username});
+				res.cookie('auth', auth_token);
+				res.json({username: account.username});
+			}
+		});
 	}
-});
+};
 
-
-router.get('/login', async function(req, res){
-	if (req.query.password == null){
-		return res.error('Missing Password');
+module.exports.login = function login(req, res){
+	if (req.query.username == null || req.query.password == null){
+		return res.error('Missing username or password');
 	}
-
-	var auth_token = await req.MV.Account.login(req.query.password);
-	if (auth_token) {
-		res.cookie('auth', auth_token);
-		res.json({username: req.MV.Account.username});
-	}else{
-		res.error('Invalid credentials');
-	}
-});
-
+	res.Models.Account.login(req.query.username, req.query.password, function(err, account){
+		if (err) {
+			res.error(err);
+		}else if (account == null) {
+			res.error('Could not authenticate credentials', 401);
+		} else {
+			var auth_token = req.auth.encodeToken({username: account.username});
+			res.cookie('auth', auth_token);
+			res.json({username: account.username});
+		}
+	});
+};
 
 router.use(function(req, res, next){
-	console.log(req.MV);
-	if (req.MV.Account.username !== req.MV.auth.username){
-		return res.error('Not Authorized!');
+	if (req.auth.data.username !== req.MV.account.username){
+		res.error('Not Authorized', 401);
+	}else{
+		next();
 	}
-	next();
 });
 
 
@@ -44,35 +53,26 @@ router.use(function(req, res, next){
 
 
 
-router.get('/views', async function(req, res){
-	try{
-		var views = await res.DB.query('MATCH p=(a:Account {username: $username})-[:VIEWS*]->(:View) WITH collect(p) as children CALL apoc.convert.toTreeClean(children) yield value RETURN value.views as views', {username: req.MV.Account.username});
-		if (views[0] == null){
-			res.json([]);
-		}else{
-			res.json(views[0].toObject().views);
+router.get('/views', function(req, res){
+	res.Models.View.getForUser(req.auth.data.username, function(err, views){
+		if (err) {
+			console.error(err);
+			res.error('Could not get views');
+		} else {
+			res.json(views);
 		}
-	}catch(e){
-		console.log(e);
-		return res.json(e);
-		res.error('An error has occured');
-	}
+	});
 });
 
 router.get('/views/:view_id', async function(req, res){
-	try{
-		var views = await res.DB.query('MATCH (a:Account {username: $username})-[:VIEWS*]->(n:View {id: $view_id}), p=(n)-[:VIEWS*0..]->(:View) WITH collect(p) as children CALL apoc.convert.toTreeClean(children) yield value RETURN value as views', {username: req.MV.Account.username, view_id: res.DB.Integer(req.params.view_id)});
-
-		if (views[0] == null){
-			res.json({});
-		}else{
-			res.json(views[0].toObject().views);
+	res.Models.View.getForUserById(req.auth.data.username, req.params.view_id, function(err, views){
+		if (err) {
+			console.error(err);
+			res.error('Could not get view');
+		} else {
+			res.json(views);
 		}
-	}catch(e){
-		console.log(e);
-		return res.json(e);
-		res.error('An error has occured');
-	}
+	});
 });
 
 router.post('/view/', async function(req, res){

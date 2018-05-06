@@ -3,13 +3,7 @@ require('module').Module._initPaths();
 require('dotenv').config();
 const fs = require('fs');
 const Moment = require('moment');
-const MVDB = new (require('mv_interface'))(process.env.DB_HOST, process.env.DB_USER, process.env.DB_PASS, {maxTransactionRetryTime: 1500});
-
-async function wait(ms){
-	return new Promise(function(resolve, reject){
-		setTimeout(resolve, ms);
-	});
-}
+const MVDB = new (require('mv_models'))(process.env.DB_HOST, process.env.DB_USER, process.env.DB_PASS, {maxTransactionRetryTime: 1500});
 
 // var companies = {
 // 	rnr: '913144',
@@ -29,9 +23,7 @@ async function wait(ms){
 // 	GLRE: '1385613',
 // 	TPRE: '1576018',
 // 	VR: '1348259',
-
 // 	AWH: '1163348',
-
 // 	AFG: '1042046',
 // 	AFSI: '1365555',
 // 	AGII: '1091748',
@@ -57,7 +49,6 @@ async function wait(ms){
 // 	WTM: '776867',
 // 	WRB: '11544',
 // 	XL: '875159',
-
 // 	AFL: '4977',
 // 	AEL: '1039828',
 // 	////ATH: '1527469', // Has dumb html format
@@ -76,30 +67,6 @@ async function wait(ms){
 // 	TMK: '320335',
 // 	UNM: '5513',
 // 	VOYA: '1535929',
-
-
-// };
-
-
-// var properties = {
-// 	Assets: 'Assets',
-// 	Revenues: 'Revenues',
-// 	PremiumsEarnedNet: 'PremiumsEarnedNet',
-// 	InvestmentIncomeInvestmentExpense: 'InvestmentIncomeInvestmentExpense',
-// 	BenefitsLossesAndExpenses: 'BenefitsLossesAndExpenses',
-// 	OperatingExpenses: 'OperatingExpenses',
-// 	InterestExpense: 'InterestExpense',
-// 	NetIncomeLoss: 'NetIncomeLoss',
-// 	Investments: 'Investments',
-// 	UnearnedPremiums: 'UnearnedPremiums',
-// 	DeferredPolicyAcquisitionCosts: 'DeferredPolicyAcquisitionCosts',
-// 	LongTermDebt: 'LongTermDebt',
-// 	PolicyholderBenefitsAndClaimsIncurredNet: 'PolicyholderBenefitsandClaimsIncurredNet',
-// 	PolicyholderBenefitsAndClaimsIncurredGross: 'PolicyholderBenefitsandClaimsIncurredGross',
-// 	//LiabilityForUnpaidClaimsAndClaimsAdjustmentExpense: 'LiabilityForUnpaidClaimsAndClaimsAdjustmentExpense',
-// 	Liabilities: 'Liabilities',
-// 	AccumulatedOtherComprehensiveIncomeLossNetOfTax: 'AccumulatedOtherComprehensiveIncomeLossNetOfTax',
-// 	StockholdersEquity: 'StockholdersEquity'
 // };
 
 var sources = (function(path){
@@ -111,11 +78,11 @@ var sources = (function(path){
 			var source = require(path+'/'+file);
 			if(typeof source.nodeUpdates != 'function'){
 				console.log('Source', path+'/'+file, 'is missing nodeUpdates');
-				source.nodeUpdates = async function(node){return {};};
+				source.nodeUpdates = function(node){return {};};
 			}
 			if(typeof source.nodeChildren != 'function'){
 				console.log('Source', path+'/'+file, 'is missing nodeChildren');
-				source.nodeChildren = async function(node){return;};
+				source.nodeChildren = function(node){return;};
 			}
 			ret.push(source);
 		}
@@ -123,52 +90,85 @@ var sources = (function(path){
 	return ret;
 })('./sources');
 
-
-
-async function updatePath(path){
-	console.log('updatePath');
-	if (path.length != 0) {
-		var node = await MVDB.Data.get(path);
-		for(var source of sources){
-			
-			var updates = await source.nodeUpdates(node);
+function updateNodeData(node, source, cb){
+	source.nodeUpdates(node, function(err, updates){
+		if(err){
+			cb(err, null);
+		}else{
 			if(typeof updates == 'object' && updates != {}){
 				updates.last_updated = Moment().format();
-				await MVDB.Data.upsertPath(path, updates);
+				MVDB.Data.upsertPath(path, updates);
 			}
-			var children = await source.nodeChildren(node);
+		}
+	});
+}
+
+function updateNodeChildren(node, source, cb){
+	source.nodeChildren(node, function(err, children){
+		var c;
+		if(!err){
 			if(Array.isArray(children)){
 				for (var child of children) {
-					await MVDB.Data.upsertPath(path.concat([child]), {});
+					MVDB.Data.upsertPath(path.concat([child]), {});
 				}
 			}
 		}
-	}
-	var children = await MVDB.Data.getChildren(path);
+		cb(err, c);
+	});
+}
+
+function updatePathChildren(path, children, cb){
 	for(var child of children){
-		var child_path = {identifier:child.properties.identifier, type: child.labels[0]};
-		await wait(1000);
-		await updatePath(path.concat([child_path]));
+		var child_path = path.concat({identifier:child.properties.identifier, type: child.labels[0]});
+		updatePath(child_path, cb);
+	}
+};
+
+function updateNode(node, sources, cb){
+	for(var source of sources){
+		updateNodeData(node, source, function(err, data){
+			if(err){
+				cb(err);
+			}
+		});
+		updateNodeChildren(node, source, function(err, data){
+			if(err){
+				cb(err);
+			}else{
+				updatePathChildren(path, children, cb);
+			}
+		});
 	}
 }
 
-
-
-
-
-
-
-
-
-
-
-
-(async function(){
-	try{
-		await updatePath([]);
-	}catch(e){
-		console.log(e);
-	}finally{
-		MVDB.close();
+async function updatePath(path, cb){
+	if (path.length != 0) {
+		MVDB.Data.get(path, function(err, node){
+			if(err){
+				cb(err, null);
+			}else{
+				updateNode(node, sources, cb);
+			}
+		});
 	}
-})();
+	MVDB.Data.getChildren(path, function(err, children){
+		if(err){
+			cb(err, null);
+		}else{
+			updatePathChildren(path, children);
+		}
+	});
+}
+
+try{
+	updatePath([], function(err){
+		if(err){
+			console.trace(err);
+		}
+	});
+}catch(e){
+	console.log('CAUGHT THROWN ERROR!');
+	console.log(e);
+}finally{
+	MVDB.close();
+}

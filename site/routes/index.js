@@ -15,9 +15,7 @@ module.exports = function(req, res, next){
 
 	app.use('/login', require('./login.js'));
 
-	app.use('/register', function(req, res){
-		res.json('registration!');
-	});
+	app.use('/register', require('./register.js'));
 
 	app.use('/settings', function(req, res){
 		res.json('settings!');

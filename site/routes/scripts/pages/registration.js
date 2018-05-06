@@ -1,4 +1,4 @@
-async function login(){
+async function register(){
 	var username = document.getElementById('username').value;
 	var password = document.getElementById('password').value;
 
@@ -12,7 +12,7 @@ async function login(){
 
 	
 
-	var result = await API.get(ENV.API_ROOT+'/account/login?username='+username+'&password='+password);
+	var result = await API.post(ENV.API_ROOT+'/account/'+username+'/?password='+password);
 	if (!result.error) {
 		localStorage.setItem('username', result.username);
 		location.href = '/';

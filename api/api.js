@@ -5,6 +5,9 @@ require('dotenv').config();
 
 console.log('----------------------------------');
 
+var neo4j = require('neo4j-driver').v1;
+var DBDriver = neo4j.driver(process.env.DB_HOST, neo4j.auth.basic(process.env.DB_USER, process.env.DB_PASS), {maxTransactionRetryTime: 30000});
+
 const Express = require('express');
 const app = Express();
 
@@ -17,25 +20,7 @@ app.use(function(err, req, res, next){
     });
 });
 
-app.use(require('cookie-parser')());
-
-// Init Resquest
-app.use(function(req, res, next){
-	req.MV = {};
-	var d = ''
-	req.on('data', function(chunk){
-		d += chunk;
-	});
-	req.on('end', function(){
-		try{
-			req.body = JSON.parse(d);
-		}catch(e){
-			req.body = {};
-		}
-		next();
-	});
-});
-
+//CORS nonsense
 app.use(function(req, res, next){
 	res.header("Access-Control-Allow-Origin", process.env.CORS_DOMAIN);
   	res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
@@ -49,24 +34,48 @@ app.use(function(req, res, next){
   	}
 });
 
+app.use(require('cookie-parser')());
+app.use(require('./HMACAuth'));
+
+// Init Request
+app.use(function(req, res, next){
+	let d = ''
+	req.on('data', function(chunk){
+		d += chunk;
+	});
+	req.on('end', function(){
+		try{
+			req.body = JSON.parse(d);
+		}catch(e){
+			req.body = {};
+		}
+		next();
+	});
+});
+app.use(function(req, res, next){
+	req.MV = {};
+	next();
+});
+
+
+
 // Init Response
 app.use(function(req, res, next){
-
-  	res.DB = require('DB')();
-  	res.models = {};
   	res.error = function(message, status){
   		status = status || 400;
 		res.status(status).json({error:message});
 	};
 
+	res.Models = require('mv_models')(DBDriver.session());
   	res.on('finish', function(){
-		res.DB.close();
+		res.Models.close();
 	});
 	
 	next();
 });
 
 app.use('/', require('routes/index.js'));
+
 app.listen(1930, function (){
-  console.log('Express listening');
+  console.log('Express listening on port 1930');
 });
