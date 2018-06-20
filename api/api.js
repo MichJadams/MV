@@ -35,10 +35,14 @@ app.use(function(req, res, next){
 });
 
 app.use(require('cookie-parser')());
-app.use(require('./HMACAuth'));
+app.use(require('./HMAC'));
 
 // Init Request
+var MV = require('./models/mv')(DBDriver.session());
+
 app.use(function(req, res, next){
+	req.MV = MV;
+
 	let d = ''
 	req.on('data', function(chunk){
 		d += chunk;
@@ -52,25 +56,13 @@ app.use(function(req, res, next){
 		next();
 	});
 });
-app.use(function(req, res, next){
-	req.MV = {};
-	next();
-});
-
-
 
 // Init Response
 app.use(function(req, res, next){
   	res.error = function(message, status){
   		status = status || 400;
 		res.status(status).json({error:message});
-	};
-
-	res.Models = require('mv_models')(DBDriver.session());
-  	res.on('finish', function(){
-		res.Models.close();
-	});
-	
+	};	
 	next();
 });
 

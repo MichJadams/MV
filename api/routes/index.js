@@ -1,28 +1,28 @@
 module.exports = function(req, res, next){
 	var app = res.app;
 
+	app.use('/account', require('./account'));
 
-
-	app.post('/account/', require('./account').create);
-	app.get('/account/login', require('./account').login);
+	// app.post('/account/', require('./account').create);
+	// app.get('/account/login', require('./account').login);
 
 	
 
-	app.param('username', function(req, res, next, username){
-		res.Models.Account.get(username, function(err, user){
-			if (err) {
-				res.error(err);
-			} else {
-				if (!user) {
-					res.error('No such user', 404);
-				} else {
-					req.MV.account = user;
-					next();	
-				}
-			}
-		});
-	});
-	app.use('/account/:username/', require('./account'));
+	// app.param('username', function(req, res, next, username){
+	// 	res.Models.Account.get(username, function(err, user){
+	// 		if (err) {
+	// 			res.error(err);
+	// 		} else {
+	// 			if (!user) {
+	// 				res.error('No such user', 404);
+	// 			} else {
+	// 				req.MV.account = user;
+	// 				next();	
+	// 			}
+	// 		}
+	// 	});
+	// });
+	// app.use('/account/:username/', require('./account'));
 	
 
 	app.use('/data/', async function(req, res, next){

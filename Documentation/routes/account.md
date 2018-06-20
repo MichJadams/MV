@@ -3,7 +3,9 @@
 
 
 ## /account POST
-Creates an account
+Creates an account.  
+Accounts must have a username, password, and display_name.  
+The username will be converted to lowercase and unique, the display name will be case sensitive
 
 ## /account/login GET
 _Required parameters: username, password_  
