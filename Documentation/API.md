@@ -1,6 +1,6 @@
 # API Routes
 
-## [Account](/routes/account.md)
+## [Account](./routes/account.md)
 ||||
 |---|---|---|
 |/account                 |POST  |Creates an account|
