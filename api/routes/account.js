@@ -1,7 +1,18 @@
 var router = module.exports = require('express').Router({mergeParams: true}); 
 // const Utils = require('Utils');
 
-
+router.param('username', function(req, res, next, username){
+	req.MV.Account.get(username, function(err, data){
+		if(err){
+			res.error(err);
+		}else{
+			if (data != null) {
+				req.User = data;
+			}
+			next();
+		}
+	});
+});
 
 router.post('/:username', function(req, res){
 	req.MV.Account.get(req.params.username, function(err, data){
@@ -10,7 +21,13 @@ router.post('/:username', function(req, res){
 		}else{
 			if (data == null) {
 				//create user here
-				
+				req.MV.Account.create(req.params.username, req.body.password, function(err, account){
+					if (err) {
+						res.error(err);
+					} else {
+						res.json(account);
+					}
+				});
 			} else {
 				res.error('Username already taken');
 			}
@@ -18,24 +35,14 @@ router.post('/:username', function(req, res){
 	});
 });
 
-
-
-
-router.param('username', function(req, res, next, username){
-	req.MV.Account.get(username, function(err, data){
-		if(err){
-			res.error(err);
-		}else{
-			if (data == null) {
-				res.error('No such user');
-			} else {
-				req.User = data;
-				next();		
-			}
-		}
-	});
+router.use('/:username', function(req, res, next){
+	console.log(req.User);
+	if (req.User == null) {
+		res.error('No such user');
+	} else {
+		next();
+	}
 });
-
 
 router.get('/:username/login', function(req, res){
 	if (req.query.password == null) {
@@ -52,7 +59,6 @@ router.get('/:username/login', function(req, res){
 	}
 });
 
-
 router.use(function(req, res, next){
 	if (!req.auth.valid) {
 		res.error('You are not authorized to access this resource');
@@ -60,7 +66,6 @@ router.use(function(req, res, next){
 		next();
 	}
 });
-
 
 router.get('/:username', function(req, res){
 	res.json(req.User);

@@ -27,7 +27,7 @@ class Account{
 
 		var query_params = {username:username, salt:salt, password:pass_hash, display_name:display_name};
 		var query = 'CREATE (user:Account {username: $username, password:$password, salt:$salt, display_name:$display_name}) return user';
-
+		
 		var account;
 		var stmt = this.session.run(query, query_params);
 		stmt.subscribe({
