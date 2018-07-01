@@ -3,23 +3,67 @@ var router = module.exports = require('express').Router({mergeParams: true});
 
 
 
-
-router.get('/', function(req, res){
-	if (req.query.username == null) {
-		res.error('You need to send a username');
-	} else {
-		console.log('Requesting user '+req.query.username);
-		req.MV.Account.get(req.query.username, function(err, data){
-			if(err){
-				res.error(err);
-			}else{
-				res.json(data);
+router.post('/:username', function(req, res){
+	req.MV.Account.get(req.params.username, function(err, data){
+		if(err){
+			res.error(err);
+		}else{
+			if (data == null) {
+				//create user here
+				
+			} else {
+				res.error('Username already taken');
 			}
-	
-		});
+		}
+	});
+});
+
+
+
+
+router.param('username', function(req, res, next, username){
+	req.MV.Account.get(username, function(err, data){
+		if(err){
+			res.error(err);
+		}else{
+			if (data == null) {
+				res.error('No such user');
+			} else {
+				req.User = data;
+				next();		
+			}
+		}
+	});
+});
+
+
+router.get('/:username/login', function(req, res){
+	if (req.query.password == null) {
+		res.error('Password missing');
+	}else{
+		var hash = req.MV.Account.generateHash(req.query.password, req.User.salt);
+		if(req.User.password != hash) {
+			res.error('Login failed');
+		} else {
+			var auth_token = req.auth.encodeToken({username: req.User.username});
+			res.cookie('auth_token', auth_token);
+			res.json(req.User);
+		}
 	}
-	// res.send();
-	// res.error('HIT');
+});
+
+
+router.use(function(req, res, next){
+	if (!req.auth.valid) {
+		res.error('You are not authorized to access this resource');
+	} else {
+		next();
+	}
+});
+
+
+router.get('/:username', function(req, res){
+	res.json(req.User);
 });
 
 // module.exports.create = function create(req, res){
@@ -82,7 +126,7 @@ router.get('/', function(req, res){
 // 		} else {
 // 			res.json(views);
 // 		}
-// 	});
+// 	});6
 // });
 
 // router.get('/views/:view_id', async function(req, res){

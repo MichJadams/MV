@@ -8,19 +8,22 @@ class Account{
 		}
 		this.session = session;
 	}
+	generateHash(password, salt){
+		var hash = Crypto.createHash('sha256');
+		
+		hash.update(password);
+		hash.update(salt);
+		
+		return hash.digest('hex');
+	}
 
 	create(username, password, cb){
 		var display_name = username;
 		username = username.toLowerCase();
 
 		var salt = Crypto.randomBytes(Number(process.env.SALT_LENGTH)).toString('hex');
-
-		var hash = Crypto.createHash('sha256');
 		
-		hash.update(password);
-		hash.update(salt);
-		
-		var pass_hash = hash.digest('hex');
+		var pass_hash = this.generateHash(password, salt);
 
 		var query_params = {username:username, salt:salt, password:pass_hash, display_name:display_name};
 		var query = 'CREATE (user:Account {username: $username, password:$password, salt:$salt, display_name:$display_name}) return user';

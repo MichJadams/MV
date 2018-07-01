@@ -6,8 +6,6 @@ require('dotenv').config();
 console.log('----------------------------------');
 
 var neo4j = require('neo4j-driver').v1;
-// console.log(neo4j.auth.basic(process.env.DB_USER, process.env.DB_PASS));
-// console.log('--');
 var DBDriver = neo4j.driver(process.env.DB_HOST, neo4j.auth.basic(process.env.DB_USER, process.env.DB_PASS), {maxTransactionRetryTime: 30000});
 
 const Express = require('express');
@@ -70,6 +68,6 @@ app.use(function(req, res, next){
 
 app.use('/', require('routes/index.js'));
 
-app.listen(1930, function (){
-  console.log('Express listening on port 1930');
+app.listen(process.env.LISTEN_PORT, function (){
+  console.log('Listening on port '+process.env.LISTEN_PORT);
 });

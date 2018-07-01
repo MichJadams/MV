@@ -4,10 +4,11 @@
 ||||
 |---|---|---|
 |/account                 |POST  |Creates an account|
-|/account/login           |GET   |Authenticates a user, and sets the auth cookie|
 |/account/username        |GET   |Returns details about a user's account|
+|/account/username/login           |GET   |Authenticates a user, and sets the auth cookie|
 
 ## [Views](./routes/views.md)
+All Views are underneath /account/username/
 ||||
 |---|---|---|
 |/views                   |GET   |Returns all of a user's views|

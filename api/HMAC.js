@@ -5,7 +5,7 @@ if (process.env.HMAC_SECRET == null){
 }
 
 module.exports = function(req, res, next){
-	req.auth = decodeToken(req.cookies.auth);
+	req.auth = decodeToken(req.cookies.auth_token);
 	req.auth.encodeToken = encodeToken;
 	req.auth.decodeToken = decodeToken;
 	next();
