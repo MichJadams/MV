@@ -1,7 +1,7 @@
 const Crypto = require('crypto');
 
 if (process.env.HMAC_SECRET == null){
-	throw 'Server misconfiguration! HMAC';
+	throw 'Server misconfiguration! HMAC_SECRET not set';
 }
 
 module.exports = function(req, res, next){

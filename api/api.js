@@ -6,6 +6,8 @@ require('dotenv').config();
 console.log('----------------------------------');
 
 var neo4j = require('neo4j-driver').v1;
+// console.log(neo4j.auth.basic(process.env.DB_USER, process.env.DB_PASS));
+// console.log('--');
 var DBDriver = neo4j.driver(process.env.DB_HOST, neo4j.auth.basic(process.env.DB_USER, process.env.DB_PASS), {maxTransactionRetryTime: 30000});
 
 const Express = require('express');
@@ -35,10 +37,14 @@ app.use(function(req, res, next){
 });
 
 app.use(require('cookie-parser')());
-app.use(require('./HMACAuth'));
+app.use(require('./HMAC'));
 
 // Init Request
+var MV = require('./models/mv')(DBDriver.session());
+
 app.use(function(req, res, next){
+	req.MV = MV;
+
 	let d = ''
 	req.on('data', function(chunk){
 		d += chunk;
@@ -52,25 +58,13 @@ app.use(function(req, res, next){
 		next();
 	});
 });
-app.use(function(req, res, next){
-	req.MV = {};
-	next();
-});
-
-
 
 // Init Response
 app.use(function(req, res, next){
   	res.error = function(message, status){
   		status = status || 400;
 		res.status(status).json({error:message});
-	};
-
-	res.Models = require('mv_models')(DBDriver.session());
-  	res.on('finish', function(){
-		res.Models.close();
-	});
-	
+	};	
 	next();
 });
 

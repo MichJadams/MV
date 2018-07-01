@@ -1,7 +1,19 @@
 
-var neo4j = require('neo4j-driver').v1;
-var DBDriver = neo4j.driver(process.env.DB_HOST, neo4j.auth.basic(process.env.DB_USER, process.env.DB_PASS), {maxTransactionRetryTime: 30000});
+// var host = "bolt://localhost:7687";
+// var username = "neo4j";
+// var password =  "iaj76sem6E";
 
-module.export = {
-    account: require('./account')(DBDriver)
-};
+// var params = {};
+
+// var neo4j = require('neo4j-driver').v1;
+// var DBDriver = neo4j.driver(host, neo4j.auth.basic(username, password), params);
+
+// var session = DBDriver.session();
+
+module.exports = function(session){return {
+	Account: new (require('./account.js'))(session),
+	View: new (require('./view.js'))(session),
+	close: function(){
+		session.close();
+	}
+}};
