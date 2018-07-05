@@ -4,3 +4,4 @@ node_modules/
 .env
 ecosystem.config.js
 api/npm-debug.log
+npm-debug.log

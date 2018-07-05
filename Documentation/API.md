@@ -11,9 +11,9 @@
 All Views are underneath /account/username/
 ||||
 |---|---|---|
-|/views                   |GET   |Returns all of a user's views|
-|/views?root=\<root>      |GET   |Returns view \<root> and all its children|
-|/view                    |GET   |Returns one view only|
-|/view                    |POST  |Create or overwrite a view completely|
-|/view?action=\<action>   |POST  |\<action> is one of [hook\|unhook]|
-|/view                    |PATCH |Updates a view, only changing the properties in the body|
+|/view                   |GET   |Returns all of a user's views|
+|/view?root=\<root>      |GET   |Returns view \<root> and all its children|
+|/view                    |POST  |Create a view|
+|/view/<view_id>                    |GET   |Returns one view only|
+|/view/<view_id>?action=\<action>   |POST  |\<action> is one of [hook\|unhook]|
+|/view/<view_id>                    |PATCH |Updates a view, only changing the properties in the body|

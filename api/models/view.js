@@ -61,7 +61,52 @@ class View{
 
 	}
 
+	getForUser(username, view_id, cb){
+		var query_params = {username:username, view_id:view_id};
+		var query = 'MATCH (user:User)-[:HAS_VIEW*]->(view:View) WHERE user.username = $username and view.id = $view_id RETURN view';
+		var view = null;
+		var stmt = this.session.run(query, query_params);
+		stmt.subscribe({
+			onError: function(err){
+				cb(err, null)
+			},
+			onNext: function(data){
+				view = data.toObject().view.properties;
+			},
+			onCompleted: function(summary){
+				cb(null, view);
+			}
+		});
+	}
 
+	createForUser(username, root_view, properties, cb){
+		if (properties == null) {
+			properties = {};
+		}
+		var query_params = {username:username, view_id:root_view, properties:properties};
+
+		var query = '';
+		if (root_view == null) {
+			query = 'MATCH (user:Account) WHERE user.username = $username CREATE (view:View $properties) CREATE (user)-[l:HAS_VIEW]->(view) RETURN view';
+		} else {
+			query = '';
+		}
+		console.log('query=',query);
+		// var query = 'MATCH (user:User)-[:HAS_VIEW*]->(view:View) WHERE user.username = $username AND view.id = $view_id RETURN view';
+		var view = null;
+		var stmt = this.session.run(query, query_params);
+		stmt.subscribe({
+			onError: function(err){
+				cb(err, null)
+			},
+			onNext: function(data){
+				view = data.toObject().view.properties;
+			},
+			onCompleted: function(summary){
+				cb(null, view);
+			}
+		});
+	}
 
 
 	// create(username, password, cb){

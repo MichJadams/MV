@@ -36,7 +36,6 @@ router.post('/:username', function(req, res){
 });
 
 router.use('/:username', function(req, res, next){
-	console.log(req.User);
 	if (req.User == null) {
 		res.error('No such user');
 	} else {
@@ -70,6 +69,11 @@ router.use(function(req, res, next){
 router.get('/:username', function(req, res){
 	res.json(req.User);
 });
+
+
+
+router.use('/:username/view', require('routes/view.js'));
+
 
 // module.exports.create = function create(req, res){
 // 	if (req.body.username == null || req.body.password == null){
